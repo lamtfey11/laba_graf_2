@@ -27,32 +27,88 @@ class NaryTree:
     def get_size(self) -> int:
         return self._size
 
-    def create_random_tree(self, num_nodes: int, max_children: int = 3, none_prob: float = 0.2) -> None:
+
+    def create_random_tree(self, num_nodes: int, n: int = 3, none_prob: float = 0.3) -> None:
         if num_nodes <= 0:
             raise ValueError("Количество узлов должно быть положительным")
+        if n <= 0:
+            raise ValueError("Число детей (n) должно быть положительным")
 
         self.root = TreeNode(random.randint(1, 1000))
         self._size = 1
-        nodes_queue = deque([(self.root, 0)])
+        nodes_queue = deque()
         current_index = 1
-        max_depth = int(num_nodes ** 0.5) + 2
 
-        while nodes_queue and current_index < num_nodes:
+        remaining_nodes = num_nodes - 1  # Корень уже создан
+
+        # Количество детей у корня: не больше n и не больше оставшихся узлов
+        available_children = min(n, remaining_nodes)
+        num_children = random.randint(1, available_children)
+        root_children = []
+        for _ in range(num_children):
+            if remaining_nodes <= 0:
+                break
+            child = TreeNode(random.randint(1, 1000))
+            self.root.children.append(child)
+            nodes_queue.append((child, 1))
+            root_children.append(child)
+            current_index += 1
+            self._size += 1
+            remaining_nodes -= 1
+
+        # Для каждого ребенка корня создаём ветку
+        for child in root_children:
+            branch_depth = random.randint(4, 7)
+            current_node = child
+            depth = 1
+            while depth < branch_depth:
+                if remaining_nodes <= 0:
+                    break
+
+                # Сколько детей можно добавить сюда (чтобы не больше n всего)
+                allowed_children = n - len(current_node.children)
+                if allowed_children <= 0:
+                    break
+
+                available_children = min(allowed_children, remaining_nodes)
+                num_children_for_node = random.randint(1, available_children)
+                new_nodes = []
+                for _ in range(num_children_for_node):
+                    if remaining_nodes <= 0:
+                        break
+                    child_node = TreeNode(random.randint(1, 1000))
+                    current_node.children.append(child_node)
+                    new_nodes.append(child_node)
+                    nodes_queue.append((child_node, depth + 1))
+                    current_index += 1
+                    self._size += 1
+                    remaining_nodes -= 1
+
+                if new_nodes:
+                    current_node = random.choice(new_nodes)
+                depth += 1
+
+        # Генерация остальных узлов
+        while nodes_queue and remaining_nodes > 0:
             current_node, depth = nodes_queue.popleft()
 
-            if depth >= max_depth:
-                continue
+            if random.random() > none_prob:
+                # Сколько детей можно добавить сюда (чтобы не больше n всего)
+                allowed_children = n - len(current_node.children)
+                if allowed_children <= 0:
+                    continue
 
-            num_children = random.randint(1, max_children)
-            for _ in range(num_children):
-                if current_index >= num_nodes:
-                    break
-                if random.random() > none_prob:
+                available_children = min(allowed_children, remaining_nodes)
+                num_children_for_node = random.randint(1, available_children)
+                for _ in range(num_children_for_node):
+                    if remaining_nodes <= 0:
+                        break
                     child_node = TreeNode(random.randint(1, 1000))
                     current_node.children.append(child_node)
                     nodes_queue.append((child_node, depth + 1))
                     current_index += 1
                     self._size += 1
+                    remaining_nodes -= 1
 
     def load_from_file(self, filename: str) -> None:
         """Загружает дерево из файла"""
